@@ -1,8 +1,6 @@
 import Head from "next/head";
 import Navbar from "../components/NavBar";
 import SwapInput from "../components/SwapInput";
-import CircuitBreaker from "../components/CircuitBreaker";
-import UserInfo from "../components/UserInfo";
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
 
 import {
@@ -11,7 +9,7 @@ import {
   Spinner,
   useToast,
 } from "@chakra-ui/react";
-import { VITRUVEO_CHAIN, WRAP_CONTRACT, WRAP_CONTRACT_ABI, SUPPLY_SENTRY_ABI } from "../const/details";
+import { VITRUVEO_CHAIN, WRAP_CONTRACT, WRAP_CONTRACT_ABI } from "../const/details";
 import {
   ConnectWallet,
   useAddress,
@@ -39,12 +37,8 @@ export default function Home(props:Props) {
   const [currentFrom, setCurrentFrom] = useState<string>("wrapped");
   const [loading, setLoading] = useState<boolean>(false);
 
-  const [tradeBalance, setTradeBalance] = useState(0);
-
-  const SUPPLY_SENTRY_CONTRACT = '0x00d266bD859D5d9e54D6dB1aC774E56352c53705';
   const vitruveoProvider = new ThirdwebSDK(VITRUVEO_CHAIN);
   const { contract: wrapContract } = useContract(WRAP_CONTRACT, JSON.parse(WRAP_CONTRACT_ABI));
-  const { contract: supplySentryContract } = useContract(SUPPLY_SENTRY_CONTRACT, JSON.parse(SUPPLY_SENTRY_ABI));
 
   const { mutateAsync: wrap } = useContractWrite(wrapContract, "wrap"); 
   const { mutateAsync: unwrap } = useContractWrite(wrapContract, "unwrap"); 
@@ -66,8 +60,6 @@ export default function Home(props:Props) {
         const balance = Number(ethers.utils.formatEther((await vitruveoProvider.getBalance(address)).value));
         const tmpBalance = balance >= 1 ? balance - 1 : balance;
         setUnwrappedBalance(tmpBalance);  
-
-        setTradeBalance(await supplySentryContract.call('tradeBalance', [address, 1490]));
 
       } catch(e) {
         console.error(e);
@@ -144,7 +136,7 @@ export default function Home(props:Props) {
         status: "error",
         title: currentFrom === 'unwrapped' ? "Wrap Failed" : "Unwrap Failed",
         description:
-          "The wrap failed due to supply restrictions currently in place.",
+          "The wrap failed.",
       });
       setLoading(false);
     }
@@ -202,11 +194,11 @@ export default function Home(props:Props) {
             <SwapInput
               current={currentFrom}
               type="wrapped"
-              max={wrappedBalance.toFixed(2)}
+              max={(wrappedBalance - 1).toFixed(0)}
               value={String(Math.floor(Number(swapValue)).toFixed(0))}
               setValue={setSwapValue}
               tokenSymbol="wVTRU"
-              tokenBalance={wrappedBalance.toFixed(2)}
+              tokenBalance={wrappedBalance.toFixed(0)}
               network="vitruveo"
             />
 
@@ -225,11 +217,11 @@ export default function Home(props:Props) {
             <SwapInput
               current={currentFrom}
               type="unwrapped"
-              max={unwrappedBalance.toFixed(2)}
+              max={(unwrappedBalance - 1).toFixed(0)}
               value={String(Math.floor(Number(swapValue)).toFixed(0))}
               setValue={setSwapValue}
               tokenSymbol="VTRU"
-              tokenBalance={unwrappedBalance.toFixed(2)}
+              tokenBalance={unwrappedBalance.toFixed(0)}
               network="vitruveo"
             />
           </Flex>
@@ -305,10 +297,6 @@ export default function Home(props:Props) {
 */}
       </Flex>
       {/* <h2 style={{textAlign: 'center', padding: '5px', fontSize: '20px', fontWeight: 'bold', color: 'white'}}><a href="https://docs.google.com/spreadsheets/d/1JG5EuuEy5T4vxSiTR4ufN2NVEYw2hmpMeDwwcaa3qg8/edit?usp=sharing" target="_new">Circuit Breaker Constraints</a></h2> */}
-
-      <div style={{textAlign: 'center', fontSize: '14px', marginTop: '5px'}}>Wrap Allowance to wVTRU: {(Number(tradeBalance)/Math.pow(10,18)).toLocaleString()}</div>
-
-      <div style={{textAlign: 'center', fontSize: '14px', marginTop: '5px'}}>Reported balances reduced by 1 to prevent rounding and gas fee errors.</div>
 
       <div style={{textAlign: 'center', fontSize: '14px', marginTop: '5px'}}>Built with 💜 by <a href="https://www.vitruveo.xyz" target="_new">Vitruveo</a>.</div>
     </ div>
